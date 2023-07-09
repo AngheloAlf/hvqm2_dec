@@ -126,6 +126,14 @@ impl DataFormat {
             },
         }
     }
+
+    pub fn toADPCMFormat(&self) -> Result<crate::adpcm::ADPCMFormat, ()> {
+        match self {
+            DataFormat::AudioKeyframe => Ok(crate::adpcm::ADPCMFormat::Reset),
+            DataFormat::AudioPredict => Ok(crate::adpcm::ADPCMFormat::Continue),
+            _ => Err(()),
+        }
+    }
 }
 
 
@@ -156,6 +164,20 @@ impl HVQM2Record {
         match self.record_type() {
             Err(value) => Err(value),
             Ok(rec_type) => DataFormat::from_u16(self.format, rec_type)
+        }
+    }
+}
+
+pub struct HVQM2AudioHeader {
+    pub samples: u32,		/* Number of samples (/channels)  */
+}
+
+impl HVQM2AudioHeader {
+    pub fn new(buf: &[u8]) -> HVQM2AudioHeader {
+        let samples = u32::from_be_bytes(buf[0x0..0x4].try_into().unwrap());
+
+        HVQM2AudioHeader {
+            samples : samples,
         }
     }
 }
