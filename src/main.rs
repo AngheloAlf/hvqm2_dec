@@ -7,6 +7,7 @@ mod adpcm;
 
 fn main() {
     let INPUT_PATH = "INTRO.HVQM";
+    let print_record_info = false;
 
     let input_file = File::open(INPUT_PATH).expect("could not open input file");
     let mut input_buf = Vec::new();
@@ -48,7 +49,9 @@ fn main() {
 
     let mut record_index = 0;
 
-    let mut decoded_audio = Vec::new();
+    let mut compressed_audio_size = 0;
+    let mut decoded_audio_bytes = Vec::new();
+    let mut decoded_audio_halfs = Vec::new();
 
     let mut offset = 0x3C;
     loop {
@@ -63,43 +66,61 @@ fn main() {
         let record_type = record.record_type().expect("oy noy");
         let record_format = record.data_format().expect("nyoron");
 
-        println!("record_type = {:#?}", record_type);
-        println!("format      = {:#?}", record_format);
-        println!("size        = 0x{:X} bytes", record.size);
-        println!();
+        if print_record_info {
+            println!("record_type = {:#?}", record_type);
+            println!("format      = {:#?}", record_format);
+            println!("size        = 0x{:X} bytes", record.size);
+            println!();
+        }
 
         match record_type {
             hvqm::RecordType::Audio => {
                 let audio_header = hvqm::HVQM2AudioHeader::new(&input_buf[offset..]);
                 let mut pcmbuf: [i16; 11988] = [0; 11988];
 
-                println!("    samples     = {}", audio_header.samples);
+                if print_record_info {
+                    println!("    samples     = {}", audio_header.samples);
+                }
 
                 adpcm_state.adpcmDecode(&input_buf[offset+4..], record_format.toADPCMFormat().expect("idk"), audio_header.samples, &mut pcmbuf, false);
 
                 let mut pcmbuf_byte = Vec::new();
                 let mut i = 0;
                 while i < audio_header.samples {
-                    let value_bytes = pcmbuf[i as usize].to_be_bytes();
+                    let value = pcmbuf[i as usize];
+                    let value_bytes = value.to_be_bytes();
 
                     pcmbuf_byte.extend(value_bytes);
-                    decoded_audio.extend(value_bytes);
+                    decoded_audio_bytes.extend(value_bytes);
+                    decoded_audio_halfs.push(value);
                     i += 1;
                 }
 
                 let output_file = File::create(format!("audio_record_{record_index:04}.pcm_raw")).expect("could not create output file");
                 BufWriter::new(output_file).write(&pcmbuf_byte).expect("Could not write to output file");
+
+                compressed_audio_size += record.size;
             },
             // hvqm::RecordType::Video => (),
             _ => (),
         }
 
-        println!();
+        if print_record_info {
+            println!();
+        }
 
         offset += record.size as usize;
         record_index += 1;
     }
 
     let output_file = File::create(format!("{INPUT_PATH}.pcm_raw")).expect("could not create output file");
-    BufWriter::new(output_file).write(&decoded_audio).expect("Could not write to output file");
+    BufWriter::new(output_file).write(&decoded_audio_bytes).expect("Could not write to output file");
+
+    let mut out_wav_file = File::create(format!("{INPUT_PATH}.wav")).expect("not");
+
+    let wav_header = wav::Header::new(wav::header::WAV_FORMAT_PCM, hvqm_header.channels as u16, hvqm_header.samples_per_sec, hvqm_header.sample_bits as u16);
+    let wav_bitdepth = wav::bit_depth::BitDepth::Sixteen(decoded_audio_halfs);
+    wav::write(wav_header, &wav_bitdepth, &mut out_wav_file).expect("error when writing wav file");
+
+    println!("compressed_audio_size = {compressed_audio_size}");
 }

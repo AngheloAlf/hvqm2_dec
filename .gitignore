@@ -18,3 +18,5 @@ Cargo.lock
 *.hvqm
 *.HVQM
 *.pcm_raw
+*.wav
+*.aiff
