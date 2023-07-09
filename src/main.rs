@@ -1,15 +1,27 @@
 use std::{fs::File, io::{BufReader, Read, BufWriter, Write}};
+use clap::Parser;
 
 mod hvqm;
 mod adpcm;
 
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Input HVQM file
+    input: String,
 
+    /// Print record information while processing HVQM file
+    #[arg(long)]
+    print_record_info: bool,
+}
 
 fn main() {
-    let INPUT_PATH = "INTRO.HVQM";
-    let print_record_info = false;
+    let args = Args::parse();
 
-    let input_file = File::open(INPUT_PATH).expect("could not open input file");
+    let input_path = &args.input;
+    let print_record_info = args.print_record_info;
+
+    let input_file = File::open(input_path).expect("could not open input file");
     let mut input_buf = Vec::new();
     BufReader::new(input_file).read_to_end(&mut input_buf).expect("error");
 
@@ -96,8 +108,8 @@ fn main() {
                     i += 1;
                 }
 
-                let output_file = File::create(format!("audio_record_{record_index:04}.pcm_raw")).expect("could not create output file");
-                BufWriter::new(output_file).write(&pcmbuf_byte).expect("Could not write to output file");
+                // let output_file = File::create(format!("audio_record_{record_index:04}.pcm_raw")).expect("could not create output file");
+                // BufWriter::new(output_file).write(&pcmbuf_byte).expect("Could not write to output file");
 
                 compressed_audio_size += record.size;
             },
@@ -113,10 +125,10 @@ fn main() {
         record_index += 1;
     }
 
-    let output_file = File::create(format!("{INPUT_PATH}.pcm_raw")).expect("could not create output file");
-    BufWriter::new(output_file).write(&decoded_audio_bytes).expect("Could not write to output file");
+    // let output_file = File::create(format!("{input_path}.pcm_raw")).expect("could not create output file");
+    // BufWriter::new(output_file).write(&decoded_audio_bytes).expect("Could not write to output file");
 
-    let mut out_wav_file = File::create(format!("{INPUT_PATH}.wav")).expect("not");
+    let mut out_wav_file = File::create(format!("{input_path}.wav")).expect("not");
 
     let wav_header = wav::Header::new(wav::header::WAV_FORMAT_PCM, hvqm_header.channels as u16, hvqm_header.samples_per_sec, hvqm_header.sample_bits as u16);
     let wav_bitdepth = wav::bit_depth::BitDepth::Sixteen(decoded_audio_halfs);
