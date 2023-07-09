@@ -4,8 +4,11 @@ mod hvqm;
 mod adpcm;
 
 
+
 fn main() {
-    let input_file = File::open("YOULOSE.HVQM").expect("could not open input file");
+    let INPUT_PATH = "INTRO.HVQM";
+
+    let input_file = File::open(INPUT_PATH).expect("could not open input file");
     let mut input_buf = Vec::new();
     BufReader::new(input_file).read_to_end(&mut input_buf).expect("error");
 
@@ -45,6 +48,8 @@ fn main() {
 
     let mut record_index = 0;
 
+    let mut decoded_audio = Vec::new();
+
     let mut offset = 0x3C;
     loop {
         if offset >= input_buf.len() {
@@ -70,14 +75,19 @@ fn main() {
 
                 println!("    samples     = {}", audio_header.samples);
 
-                adpcm_state.adpcmDecode(&input_buf[offset+4..], record_format.toADPCMFormat().expect("idk"), audio_header.samples, &mut pcmbuf, true);
-
-                let output_file = File::create(format!("audio_record_{record_index:04}.pcm_raw")).expect("could not create output file");
+                adpcm_state.adpcmDecode(&input_buf[offset+4..], record_format.toADPCMFormat().expect("idk"), audio_header.samples, &mut pcmbuf, false);
 
                 let mut pcmbuf_byte = Vec::new();
-                for value in pcmbuf {
-                    pcmbuf_byte.extend(value.to_be_bytes());
+                let mut i = 0;
+                while i < audio_header.samples {
+                    let value_bytes = pcmbuf[i as usize].to_be_bytes();
+
+                    pcmbuf_byte.extend(value_bytes);
+                    decoded_audio.extend(value_bytes);
+                    i += 1;
                 }
+
+                let output_file = File::create(format!("audio_record_{record_index:04}.pcm_raw")).expect("could not create output file");
                 BufWriter::new(output_file).write(&pcmbuf_byte).expect("Could not write to output file");
             },
             // hvqm::RecordType::Video => (),
@@ -89,4 +99,7 @@ fn main() {
         offset += record.size as usize;
         record_index += 1;
     }
+
+    let output_file = File::create(format!("{INPUT_PATH}.pcm_raw")).expect("could not create output file");
+    BufWriter::new(output_file).write(&decoded_audio).expect("Could not write to output file");
 }

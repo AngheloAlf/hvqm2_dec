@@ -242,6 +242,7 @@ impl ADPCMstate {
         //self.outPtr = outstream;
         self.previous = var_t0 as i16;
         self.step_index = stepIndex as u8;
+        // println!("{outOffset}");
     }
 
 }
