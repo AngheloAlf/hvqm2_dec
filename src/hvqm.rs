@@ -87,15 +87,15 @@ impl HVQM2Header {
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum RecordType {
-    AUDIO,
-    VIDEO,
+    Audio,
+    Video,
 }
 
 impl RecordType {
     pub fn from_u16(t: u16) -> Result<RecordType, ()> {
         match t {
-            0 => Ok(RecordType::AUDIO),
-            1 => Ok(RecordType::VIDEO),
+            0 => Ok(RecordType::Audio),
+            1 => Ok(RecordType::Video),
             _ => Err(()),
         }
     }
@@ -103,25 +103,25 @@ impl RecordType {
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum DataFormat {
-    AUDIO_KEYFRAME,
-    AUDIO_PREDICT,
-    VIDEO_KEYFRAME,
-    VIDEO_PREDICT,
-    VIDEO_HOLD,
+    AudioKeyframe,
+    AudioPredict,
+    VideoKeyframe,
+    VideoPredict,
+    VideoHold,
 }
 
 impl DataFormat {
     pub fn from_u16(format: u16, record_type: RecordType) -> Result<DataFormat, ()> {
         match record_type {
-            RecordType::AUDIO => match format {
-                0 => Ok(DataFormat::AUDIO_KEYFRAME),
-                1 => Ok(DataFormat::AUDIO_PREDICT),
+            RecordType::Audio => match format {
+                0 => Ok(DataFormat::AudioKeyframe),
+                1 => Ok(DataFormat::AudioPredict),
                 _ => Err(())
             },
-            RecordType::VIDEO => match format {
-                0 => Ok(DataFormat::VIDEO_KEYFRAME),
-                1 => Ok(DataFormat::VIDEO_PREDICT),
-                2 => Ok(DataFormat::VIDEO_HOLD),
+            RecordType::Video => match format {
+                0 => Ok(DataFormat::VideoKeyframe),
+                1 => Ok(DataFormat::VideoPredict),
+                2 => Ok(DataFormat::VideoHold),
                 _ => Err(())
             },
         }
