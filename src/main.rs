@@ -27,4 +27,25 @@ fn main() {
     print!("\n");
     print!("Display mode        : {}\n", "16-bit RGBA");
     print!("\n");
+
+    let mut offset = 0x3C;
+    loop {
+        if offset >= input_buf.len() {
+            break;
+        }
+
+        let record = hvqm::HVQM2Record::new(&input_buf[offset..]);
+
+        offset += 0x8;
+
+        let record_type = record.record_type().expect("oy noy");
+        let record_format = record.data_format().expect("nyoron");
+
+        println!("record_type = {:#?}", record_type);
+        println!("format      = {:#?}", record_format);
+        println!("size        = 0x{:X}", record.size);
+        println!();
+
+        offset += record.size as usize;
+    }
 }

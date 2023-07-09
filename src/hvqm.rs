@@ -83,3 +83,79 @@ impl HVQM2Header {
         std::str::from_utf8(&self.file_version).unwrap()
     }
 }
+
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum RecordType {
+    AUDIO,
+    VIDEO,
+}
+
+impl RecordType {
+    pub fn from_u16(t: u16) -> Result<RecordType, ()> {
+        match t {
+            0 => Ok(RecordType::AUDIO),
+            1 => Ok(RecordType::VIDEO),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum DataFormat {
+    AUDIO_KEYFRAME,
+    AUDIO_PREDICT,
+    VIDEO_KEYFRAME,
+    VIDEO_PREDICT,
+    VIDEO_HOLD,
+}
+
+impl DataFormat {
+    pub fn from_u16(format: u16, record_type: RecordType) -> Result<DataFormat, ()> {
+        match record_type {
+            RecordType::AUDIO => match format {
+                0 => Ok(DataFormat::AUDIO_KEYFRAME),
+                1 => Ok(DataFormat::AUDIO_PREDICT),
+                _ => Err(())
+            },
+            RecordType::VIDEO => match format {
+                0 => Ok(DataFormat::VIDEO_KEYFRAME),
+                1 => Ok(DataFormat::VIDEO_PREDICT),
+                2 => Ok(DataFormat::VIDEO_HOLD),
+                _ => Err(())
+            },
+        }
+    }
+}
+
+
+pub struct HVQM2Record {
+    pub r_type: u16,          /* Record type  */
+    pub format: u16,          /* Data format  */
+    pub size: u32,            /* Record size (excluding the header) [byte] */
+}
+
+impl HVQM2Record {
+    pub fn new(buf: &[u8]) -> HVQM2Record {
+        let r_type = u16::from_be_bytes(buf[0x0..0x2].try_into().unwrap());
+        let format = u16::from_be_bytes(buf[0x2..0x4].try_into().unwrap());
+        let size = u32::from_be_bytes(buf[0x4..0x8].try_into().unwrap());
+
+        HVQM2Record {
+            r_type : r_type,
+            format : format,
+            size : size,
+        }
+    }
+
+    pub fn record_type(&self) -> Result<RecordType, ()> {
+        RecordType::from_u16(self.r_type)
+    }
+
+    pub fn data_format(&self) -> Result<DataFormat, ()> {
+        match self.record_type() {
+            Err(value) => Err(value),
+            Ok(rec_type) => DataFormat::from_u16(self.format, rec_type)
+        }
+    }
+}
