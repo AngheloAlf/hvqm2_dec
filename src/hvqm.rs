@@ -1,3 +1,6 @@
+/*
+ * HVQM2Header : HVQM2 file header
+ */
 pub struct HVQM2Header {
     /* 0x00 */ pub file_version: [u8; 16],
     /* 0x10 */ pub file_size: u32,              /* File size [byte] */
@@ -143,6 +146,9 @@ pub struct HVQM2Record {
     pub size: u32,            /* Record size (excluding the header) [byte] */
 }
 
+/*
+ * HVQM2Record : Record header (Located directly after HVQM2Header)
+ */
 impl HVQM2Record {
     pub fn new(buf: &[u8]) -> HVQM2Record {
         let r_type = u16::from_be_bytes(buf[0x0..0x2].try_into().unwrap());
@@ -168,8 +174,11 @@ impl HVQM2Record {
     }
 }
 
+/*
+ * HVQM2Audio : Audio header (Follows record header)
+ */
 pub struct HVQM2AudioHeader {
-    pub samples: u32,		/* Number of samples (/channels)  */
+    pub samples: u32,        /* Number of samples (/channels)  */
 }
 
 impl HVQM2AudioHeader {
@@ -178,6 +187,78 @@ impl HVQM2AudioHeader {
 
         HVQM2AudioHeader {
             samples : samples,
+        }
+    }
+}
+
+/*
+ * HVQM2Frame :  Video header  (Follows record header)
+ */
+pub struct HVQM2Frame {
+    /* 0x00 */ pub basisnum_offset: [u32; 2],    /* Basis number block (0: brightness, 1: color difference) */
+    /* 0x08 */ pub basnumrn_offset: [u32; 2],    /* Basis number cold run (0: brightness, 1: color difference)   */
+    /* 0x10 */ pub scale_offset: [u32; 3],    /* Basis coefficient (0:Y, 1:U, 2:V) */
+    /* 0x1C */ pub fixvl_offset: [u32; 3],    /* Fixed length code (0:Y, 1:U, 2:V) */
+    /* 0x28 */ pub dcval_offset: [u32; 3],    /* Block DC (0:Y, 1:U, 2:V) */
+}
+
+impl HVQM2Frame {
+    pub fn new(buf: &[u8]) -> HVQM2Frame {
+        let basisnum_offset: [u32; 2] = [u32::from_be_bytes(buf[0x00..0x04].try_into().unwrap()), u32::from_be_bytes(buf[0x04..0x08].try_into().unwrap())];
+        let basnumrn_offset: [u32; 2] = [u32::from_be_bytes(buf[0x08..0x0C].try_into().unwrap()), u32::from_be_bytes(buf[0x0C..0x10].try_into().unwrap())];
+        let scale_offset: [u32; 3] = [u32::from_be_bytes(buf[0x10..0x14].try_into().unwrap()), u32::from_be_bytes(buf[0x14..0x18].try_into().unwrap()), u32::from_be_bytes(buf[0x18..0x1C].try_into().unwrap())];
+        let fixvl_offset: [u32; 3] = [u32::from_be_bytes(buf[0x1C..0x20].try_into().unwrap()), u32::from_be_bytes(buf[0x20..0x24].try_into().unwrap()), u32::from_be_bytes(buf[0x24..0x28].try_into().unwrap())];
+        let dcval_offset: [u32; 3] = [u32::from_be_bytes(buf[0x28..0x2C].try_into().unwrap()), u32::from_be_bytes(buf[0x2C..0x30].try_into().unwrap()), u32::from_be_bytes(buf[0x30..0x34].try_into().unwrap())];
+
+        HVQM2Frame {
+            basisnum_offset: basisnum_offset,
+            basnumrn_offset: basnumrn_offset,
+            scale_offset: scale_offset,
+            fixvl_offset: fixvl_offset,
+            dcval_offset: dcval_offset,
+        }
+    }
+}
+
+/*
+ * HVQM2KeyFrame : Key frame header (Follows the video header)
+ */
+pub struct HVQM2KeyFrame {
+    /* 0x00 */ pub dcrun_offset: [u32; 3],    /* DC value cold run (0:Y, 1:U, 2:V) */
+    /* 0x0C */ pub nest_start_x: u32,        /* Base start position (x coordinate) */
+    /* 0x10 */ pub nest_start_y: u32,        /* Base start position (y coordinate) */
+}
+
+impl HVQM2KeyFrame {
+    pub fn new(buf: &[u8]) -> HVQM2KeyFrame {
+        let dcrun_offset: [u32; 3] = [u32::from_be_bytes(buf[0x00..0x04].try_into().unwrap()), u32::from_be_bytes(buf[0x04..0x08].try_into().unwrap()), u32::from_be_bytes(buf[0x08..0x0C].try_into().unwrap())];
+        let nest_start_x: u32 = u32::from_be_bytes(buf[0x0C..0x10].try_into().unwrap());
+        let nest_start_y: u32 = u32::from_be_bytes(buf[0x10..0x14].try_into().unwrap());
+
+        HVQM2KeyFrame {
+            dcrun_offset: dcrun_offset,
+            nest_start_x: nest_start_x,
+            nest_start_y: nest_start_y,
+        }
+    }
+}
+
+/*
+* HVQM2PredictFrame : Predict frame header (Follows video header)
+*/
+pub struct HVQM2PredictFrame {
+    /* 0x0 */ pub movevector_offset: u32,    /* Movement vector */
+    /* 0x4 */ pub macroblock_offset: u32,    /* Macro block state flag */
+}
+
+impl HVQM2PredictFrame {
+    pub fn new(buf: &[u8]) -> HVQM2PredictFrame {
+        let movevector_offset: u32 = u32::from_be_bytes(buf[0x00..0x04].try_into().unwrap());
+        let macroblock_offset: u32 = u32::from_be_bytes(buf[0x04..0x08].try_into().unwrap());
+
+        HVQM2PredictFrame {
+            movevector_offset: movevector_offset,
+            macroblock_offset: macroblock_offset,
         }
     }
 }

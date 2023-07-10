@@ -60,6 +60,8 @@ fn main() {
     let mut adpcm_state = adpcm::ADPCMstate::new();
 
     let mut record_index = 0;
+    let mut audio_record_count = 0;
+    let mut video_record_count = 0;
 
     let mut compressed_audio_size = 0;
     let mut decoded_audio_bytes = Vec::new();
@@ -112,8 +114,71 @@ fn main() {
                 // BufWriter::new(output_file).write(&pcmbuf_byte).expect("Could not write to output file");
 
                 compressed_audio_size += record.size;
+                audio_record_count += 1;
             },
-            // hvqm::RecordType::Video => (),
+            hvqm::RecordType::Video => {
+                let mut suboffset = 0;
+
+                // TODO: handle HOLD better
+
+                if print_record_info {
+                    match record_format {
+                        hvqm::DataFormat::VideoKeyframe | hvqm::DataFormat::VideoPredict => {
+                            let video_header = hvqm::HVQM2Frame::new(&input_buf[offset..]);
+                            suboffset += 0x34;
+
+                            println!("    basisnum_offset[0] = {}", video_header.basisnum_offset[0]);
+                            println!("    basisnum_offset[1] = {}", video_header.basisnum_offset[1]);
+                            println!("    basnumrn_offset[0] = {}", video_header.basnumrn_offset[0]);
+                            println!("    basnumrn_offset[1] = {}", video_header.basnumrn_offset[1]);
+                            println!("    scale_offset[0]    = {}", video_header.scale_offset[0]);
+                            println!("    scale_offset[1]    = {}", video_header.scale_offset[1]);
+                            println!("    scale_offset[2]    = {}", video_header.scale_offset[2]);
+                            println!("    fixvl_offset[0]    = {}", video_header.fixvl_offset[0]);
+                            println!("    fixvl_offset[1]    = {}", video_header.fixvl_offset[1]);
+                            println!("    fixvl_offset[2]    = {}", video_header.fixvl_offset[2]);
+                            println!("    dcval_offset[0]    = {}", video_header.dcval_offset[0]);
+                            println!("    dcval_offset[1]    = {}", video_header.dcval_offset[1]);
+                            println!("    dcval_offset[2]    = {}", video_header.dcval_offset[2]);
+                        },
+                        hvqm::DataFormat::VideoHold => (),
+                        _  => panic!("what"),
+                    }
+
+                }
+
+                match record_format {
+                    hvqm::DataFormat::VideoKeyframe => {
+                        let key_header = hvqm::HVQM2KeyFrame::new(&input_buf[offset+suboffset..]);
+                        suboffset += 0x14;
+
+                        if print_record_info {
+                            println!("        dcrun_offset[0] = {}", key_header.dcrun_offset[0]);
+                            println!("        dcrun_offset[1] = {}", key_header.dcrun_offset[1]);
+                            println!("        dcrun_offset[2] = {}", key_header.dcrun_offset[2]);
+                            println!("        nest_start_x    = {}", key_header.nest_start_x);
+                            println!("        nest_start_y    = {}", key_header.nest_start_y);
+                        }
+                    },
+                    hvqm::DataFormat::VideoPredict => {
+                        let predict_header = hvqm::HVQM2PredictFrame::new(&input_buf[offset+suboffset..]);
+                        suboffset += 0x8;
+
+                        if print_record_info {
+                            println!("        movevector_offset    = {}", predict_header.movevector_offset);
+                            println!("        macroblock_offset    = {}", predict_header.macroblock_offset);
+                        }
+                    },
+                    hvqm::DataFormat::VideoHold => (),
+                    _  => panic!("what"),
+                }
+
+                // println!();
+                // println!("    size remaining: {}", record.size as i32 - suboffset as i32);
+                // println!();
+
+                video_record_count += 1;
+            },
             _ => (),
         }
 
@@ -135,4 +200,6 @@ fn main() {
     wav::write(wav_header, &wav_bitdepth, &mut out_wav_file).expect("error when writing wav file");
 
     println!("compressed_audio_size = {compressed_audio_size}");
+    println!("audio_record_count    = {audio_record_count}");
+    println!("video_record_count    = {video_record_count}");
 }
