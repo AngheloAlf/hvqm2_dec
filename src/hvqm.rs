@@ -224,16 +224,16 @@ impl HVQM2Frame {
  * HVQM2KeyFrame : Key frame header (Follows the video header)
  */
 pub struct HVQM2KeyFrame {
-    /* 0x00 */ pub dcrun_offset: [u32; 3],    /* DC value cold run (0:Y, 1:U, 2:V) */
-    /* 0x0C */ pub nest_start_x: u32,        /* Base start position (x coordinate) */
-    /* 0x10 */ pub nest_start_y: u32,        /* Base start position (y coordinate) */
+    /* 0x0 */ pub dcrun_offset: [u32; 3],    /* DC value cold run (0:Y, 1:U, 2:V) */
+    /* 0xC */ pub nest_start_x: u16,        /* Base start position (x coordinate) */
+    /* 0xE */ pub nest_start_y: u16,        /* Base start position (y coordinate) */
 }
 
 impl HVQM2KeyFrame {
     pub fn new(buf: &[u8]) -> HVQM2KeyFrame {
         let dcrun_offset: [u32; 3] = [u32::from_be_bytes(buf[0x00..0x04].try_into().unwrap()), u32::from_be_bytes(buf[0x04..0x08].try_into().unwrap()), u32::from_be_bytes(buf[0x08..0x0C].try_into().unwrap())];
-        let nest_start_x: u32 = u32::from_be_bytes(buf[0x0C..0x10].try_into().unwrap());
-        let nest_start_y: u32 = u32::from_be_bytes(buf[0x10..0x14].try_into().unwrap());
+        let nest_start_x: u16 = u16::from_be_bytes(buf[0x0C..0x0E].try_into().unwrap());
+        let nest_start_y: u16 = u16::from_be_bytes(buf[0x0E..0x10].try_into().unwrap());
 
         HVQM2KeyFrame {
             dcrun_offset: dcrun_offset,

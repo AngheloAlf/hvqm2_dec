@@ -150,7 +150,7 @@ fn main() {
                 match record_format {
                     hvqm::DataFormat::VideoKeyframe => {
                         let key_header = hvqm::HVQM2KeyFrame::new(&input_buf[offset+suboffset..]);
-                        suboffset += 0x14;
+                        suboffset += 0x10;
 
                         if print_record_info {
                             println!("        dcrun_offset[0] = {}", key_header.dcrun_offset[0]);
