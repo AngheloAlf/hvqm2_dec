@@ -28,7 +28,7 @@ pub struct HVQM2Header {
 }
 
 impl HVQM2Header {
-    pub fn new(buf: &Vec<u8>) -> HVQM2Header {
+    pub fn new(buf: &[u8]) -> HVQM2Header {
         let file_version: [u8; 0x10] = buf[0x00..0x10].try_into().unwrap();
         let file_size = u32::from_be_bytes(buf[0x10..0x14].try_into().unwrap());
 
@@ -130,7 +130,7 @@ impl DataFormat {
         }
     }
 
-    pub fn toADPCMFormat(&self) -> Result<crate::adpcm::ADPCMFormat, ()> {
+    pub fn to_adpcm_format(&self) -> Result<crate::adpcm::ADPCMFormat, ()> {
         match self {
             DataFormat::AudioKeyframe => Ok(crate::adpcm::ADPCMFormat::Reset),
             DataFormat::AudioPredict => Ok(crate::adpcm::ADPCMFormat::Continue),

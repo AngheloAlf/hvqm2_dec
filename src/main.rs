@@ -90,13 +90,12 @@ fn main() {
         match record_type {
             hvqm::RecordType::Audio => {
                 let audio_header = hvqm::HVQM2AudioHeader::new(&input_buf[offset..]);
-                let mut pcmbuf: [i16; 11988] = [0; 11988];
 
                 if print_record_info {
                     println!("    samples     = {}", audio_header.samples);
                 }
 
-                adpcm_state.adpcmDecode(&input_buf[offset+4..], record_format.toADPCMFormat().expect("idk"), audio_header.samples, &mut pcmbuf, false);
+                let pcmbuf = adpcm_state.adpcm_decode(&input_buf[offset+4..], record_format.to_adpcm_format().expect("idk"), audio_header.samples,  false);
 
                 let mut pcmbuf_byte = Vec::new();
                 let mut i = 0;
@@ -179,7 +178,6 @@ fn main() {
 
                 video_record_count += 1;
             },
-            _ => (),
         }
 
         if print_record_info {
